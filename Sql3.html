@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App with Timer and Progress Tracking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0b0c10;
+            color: #ffffff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        #quiz-container {
+            margin-top: 50px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #level {
+            font-size: 2em;
+            color: yellow;
+        }
+
+        #question-box {
+            background-color: #ffffff;
+            color: black;
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            height: 80vh;
+        }
+
+        .answer-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 80%;
+            margin: 20px auto;
+        }
+
+        .answer-box {
+            background-color: #ffffff;
+            color: black;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+
+        .answer-box:hover {
+            background-color: #cfd8dc;
+        }
+
+        #timer {
+            font-size: 1.5em;
+            color: #FF5733;
+            margin: 20px;
+        }
+
+        #progress {
+            font-size: 1.5em;
+            color: #00FF00;
+            margin-top: 10px;
+        }
+
+        #progress-bar {
+            width: 80%;
+            height: 20px;
+            background-color: #333;
+            margin: 10px auto;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        #progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background-color: #00FF00;
+            transition: width 0.3s ease;
+        }
+
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 10px;
+            text-align: center;
+            color: black;
+        }
+
+        #retry-btn, #close-btn {
+            background-color: #FF5733;
+            color: #ffffff;
+            font-size: 1.2em;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #retry-btn:hover, #close-btn:hover {
+            background-color: #e74c3c;
+        }
+
+        #congratulations {
+            font-size: 2em;
+            color: #00FF00;
+            margin-bottom: 20px;
+        }
+
+        #encouragement {
+            font-size: 1.5em;
+            color: #FF5733;
+            margin-bottom: 20px;
+        }
+
+        #score-display {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="quiz-container">
+        <div id="level">LEVEL THREE</div>
+        <div><h2> PHYSICS, EARTH SCIENCE</h2></div>
+        <div id="question-box">QUESTION</div>
+        <div id="timer">Time left: <span id="time-left">30</span> seconds</div>
+        <div id="progress">Question <span id="current-question">1</span> of <span id="total-questions">5</span></div>
+        <div id="progress-bar">
+            <div id="progress-bar-fill"></div>
+        </div>
+        <div class="answer-container">
+            <div class="answer-box" onclick="checkAnswer(this)">Answer 1</div>
+            <div class="answer-box" onclick="checkAnswer(this)">Answer 2</div>
+            <div class="answer-box" onclick="checkAnswer(this)">Answer 3</div>
+            <div class="answer-box" onclick="checkAnswer(this)">Answer 4</div>
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="scoreModal" class="modal">
+        <div class="modal-content" id="modal-content">
+            <h2 id="congratulations"></h2>
+            <p id="score-display"></p>
+            <p id="encouragement"></p>
+            <button id="retry-btn" onclick="retryQuiz()">Retry Quiz</button>
+            <button id="close-btn" onclick="closeApp()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 0;
+        let score = 0;
+        let timeLeft = 30;
+        let timer;
+       const questions = [
+       
+{ question: "Who formulated the theory of relativity?", answers: ["Albert Einstein", "Isaac Newton", "Galileo Galilei", "Leonardo da Vinci"], correct: 0 },
+{ question: "What is the speed of light?", answers: ["300,000 km/s", "400,000 km/s", "500,000 km/s", "600,000 km/s"], correct: 0 },
+{ question: "Which force opposes motion?", answers: ["Friction", "Gravity", "Magnetism", "Electromagnetism"], correct: 0 },
+{ question: "What is the unit of measurement for energy?", answers: ["Joule", "Newton", "Pascal", "Watt"], correct: 0 },
+ { question: "Who discovered X-rays?", answers: ["Wilhelm Conrad Röntgen", "Marie Curie", "Albert Einstein", "Nikola Tesla"], correct: 0 },
+{ question: "Which planet has the most moons?", answers: ["Jupiter", "Saturn", "Uranus", "Neptune"], correct: 0 },
+
+{ question: "What is the process of plate movement?", answers: ["Continental drift", "Plate tectonics", "Weathering", "Erosion"], correct: 1 },
+
+{ question: "Which type of rock is formed from magma?", answers: ["Igneous", "Sedimentary", "Metamorphic", "Foliated"], correct: 0 },
+
+{ question: "What is the Earth's largest ocean?", answers: ["Pacific Ocean", "Atlantic Ocean", "Indian Ocean", "Arctic Ocean"], correct: 0 },
+
+{ question: "Which natural disaster involves movement along fault lines?", answers: ["Earthquake", "Hurricane", "Tornado", "Volcano"], correct: 0 },
+
+{ question: "What percentage of Earth's surface is water?", answers: ["60-70%", "70-80%", "80-90%", "90-95%"], correct: 1 },
+            
+        ];
+
+        const totalQuestions = questions.length;
+
+        function shuffleQuestions(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        shuffleQuestions(questions);
+
+        function loadQuestion() {
+            if (currentQuestion < totalQuestions) {
+                document.getElementById('question-box').innerText = questions[currentQuestion].question;
+                let answerBoxes = document.getElementsByClassName('answer-box');
+                for (let i = 0; i < answerBoxes.length; i++) {
+                    answerBoxes[i].innerText = questions[currentQuestion].answers[i];
+                }
+
+                document.getElementById('current-question').innerText = currentQuestion + 1;
+                document.getElementById('total-questions').innerText = totalQuestions;
+
+                let progressPercentage = ((currentQuestion + 1) / totalQuestions) * 100;
+                document.getElementById('progress-bar-fill').style.width = progressPercentage + '%';
+
+                timeLeft = 30;
+                document.getElementById('time-left').innerText = timeLeft;
+                clearInterval(timer);
+                timer = setInterval(updateTimer, 1000);
+            } else {
+                displayResult();
+            }
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            document.getElementById('time-left').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                currentQuestion++;
+                loadQuestion();
+            }
+        }
+
+        function checkAnswer(selectedAnswer) {
+            clearInterval(timer);
+            let answerBoxes = document.getElementsByClassName('answer-box');
+            let selectedIndex = Array.prototype.indexOf.call(answerBoxes, selectedAnswer);
+
+            if (selectedIndex === questions[currentQuestion].correct) {
+                score++;
+            }
+
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        function displayResult() {
+            let modal = document.getElementById('scoreModal');
+            let congratulations = document.getElementById('congratulations');
+            let encouragement = document.getElementById('encouragement');
+            let scoreDisplay = document.getElementById('score-display');
+            let retryBtn = document.getElementById('retry-btn');
+
+            scoreDisplay.innerText = `Your Score: ${score} / ${totalQuestions}`;
+
+            if (score < 3) {
+                congratulations.innerText = "Poor Score!";
+                encouragement.innerText = "Don't worry! You can try again. Keep learning!";
+                retryBtn.style.display = "inline-block";
+            } else {
+                congratulations.innerText = "Congratulations!";
+                encouragement.innerText = "Well done! You've completed the quiz.";
+                retryBtn.style.display = "none";
+            }
+
+            modal.style.display = "block";
+        }
+
+        function retryQuiz() {
+            score = 0;
+            currentQuestion = 0;
+            loadQuestion();
+            let modal = document.getElementById('scoreModal');
+            modal.style.display = "none";
+        }
+
+       
+        window.onload = loadQuestion;
+    </script>
+</body>
+</html>
